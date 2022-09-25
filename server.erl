@@ -3,19 +3,21 @@
 
 start(InitString, K, WorkerCount) -> 
     spawn(server, startMining, [InitString, K, WorkerCount]).
+
+start(InitString, K, WorkerCount, Node) -> 
+    spawn(Node, server, startMining, [InitString, K, WorkerCount]).
  
 loop(_InitString, _K, 0) -> io:format("Exit~n");
 
 loop(InitString, K, CurrWorkerCount) ->
     receive
-        {Client, {BitcoinStr, found}} -> 
+        {Client, {BitcoinStr, HashValue, found}} -> 
             Client ! {kill},
-            io:format("~p ~p~n", [Client, BitcoinStr]),
-            loop(InitString, K, CurrWorkerCount-1);
-        {Client, requestMining} -> 
-            Client ! {self(), InitString + base64:encode(crypto:strong_rand_bytes(6)), K},
-            loop(InitString, K, CurrWorkerCount+1)
-    end.
+            io:format("pid: ~p, bitcoin: ~p, hash_value: ~p~n", [Client, BitcoinStr, HashValue]);
+        {Client, {not_found}} -> 
+            io:format("not found on ~p~n", [Client])
+    end,
+    loop(InitString, K, CurrWorkerCount-1).
 
 startMining(InitString, K, WorkerCount) -> 
     statistics(runtime),
